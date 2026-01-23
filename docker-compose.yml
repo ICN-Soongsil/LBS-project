@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  # 1. Zookeeper: Kafka의 메타데이터 관리 및 클러스터 상태 조율
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181 # Zookeeper가 사용자와 통신할 포트
+
+  # 2. Kafka: 실시간 메시지 스트리밍을 처리하는 메인 브로커
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper # Zookeeper가 먼저 실행되어야 Kafka가 구동됨
+    ports:
+      - "9092:9092" # 내 컴퓨터(Host)의 9092 포트를 컨테이너의 9092와 연결
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181 # Kafka가 연결할 Zookeeper 주소
+
+      # 외부 클라이언트(Spring Boot 등)가 Kafka에 접속할 때 사용하는 주소 설정
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+
+      # 테스트 환경이므로 복제본(Replication) 수를 1개로 제한
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  # 3. Redis: 캐싱이나 실시간 데이터 처리를 위한 고속 인메모리 DB
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379" # Redis 기본 포트 연결
