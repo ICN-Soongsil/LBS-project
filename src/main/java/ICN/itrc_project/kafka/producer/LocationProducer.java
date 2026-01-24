@@ -1,0 +1,31 @@
+package ICN.itrc_project.kafka.producer;
+
+import ICN.itrc_project.dto.LocationRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+
+/**
+ * 위치 이벤트를 Kafka 토픽으로 발행하는 프로듀서
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class LocationProducer {
+
+    // KafkaConfig에서 설정된 연결을 통해 메시지를 보냄
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    private static final String TOPIC = "location-events";
+
+    public void sendLocation(LocationRequest request) {
+        kafkaTemplate.send(TOPIC, request.getUserId(), request);
+        // 1. TOPIC: 어디로 보낼 것인가
+        // 2. request.getUserId(): 어떤 파티션으로 보낼 것인가 (메시지 키)
+        // 3. request: 무엇을 보낼 것인가 (메시지 값/페이로드)
+
+        log.info("[🤖 Producer] 위치 이벤트 발행 성공: userId={}, timestamp={}",
+                request.getUserId(), request.getTimestamp());
+    }
+}
