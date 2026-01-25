@@ -22,10 +22,13 @@ public class LocationConsumer {
 
     // Redis에 저장할 키 명칭 정의
     private static final String GEO_KEY = "mobility:locations";     // 주변 몇 km 이내 찾을때 묶기 위함
-    private static String STATUS_PREFIX = "mobility:status:";       // 사용자의 상세 정보
+    private static final String STATUS_PREFIX = "mobility:status:";       // 사용자의 상세 정보
 
     @KafkaListener(topics = "location-events", groupId = "lbs-group")
     public void consumeLocation(LocationRequest request) {
+        Long eventTimestamp = (request.getTimestamp() != null) ? request.getTimestamp() : System.currentTimeMillis();
+        String readableTime = java.time.LocalTime.now().toString();
+
         // 1. Redis Geo 기능을 활용한 공간 인덱싱 저장
         redisTemplate.opsForGeo().add(
                 GEO_KEY,
@@ -37,9 +40,9 @@ public class LocationConsumer {
         // RediSearch와 결합하여 복합 질의가 가능하도록 구성함
         redisTemplate.opsForValue().set(STATUS_PREFIX + request.getUserId(), request);
 
-        long processingLag = Instant.now().toEpochMilli() - request.getTimestamp();
+        long processingLag = System.currentTimeMillis() - eventTimestamp;
 
-        log.info("[🧑‍ Consumer] 이벤트 처리 완료: userId={}, 지연시간={}ms",
-                request.getUserId(), processingLag);
+        log.info(">>> [🧑‍💻 Consumer] 이벤트 처리 완료 | 사용자 ID: {}, 완료 시각: {}, 처리 지연: {}ms",
+                request.getUserId(), readableTime, processingLag);
     }
 }

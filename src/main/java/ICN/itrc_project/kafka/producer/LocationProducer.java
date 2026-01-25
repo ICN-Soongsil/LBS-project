@@ -20,12 +20,14 @@ public class LocationProducer {
     private static final String TOPIC = "location-events";
 
     public void sendLocation(LocationRequest request) {
+        String readableTime = java.time.LocalTime.now().toString();
+
         kafkaTemplate.send(TOPIC, request.getUserId(), request);
         // 1. TOPIC: 어디로 보낼 것인가
         // 2. request.getUserId(): 어떤 파티션으로 보낼 것인가 (메시지 키)
         // 3. request: 무엇을 보낼 것인가 (메시지 값/페이로드)
 
-        log.info("[🤖 Producer] 위치 이벤트 발행 성공: userId={}, timestamp={}",
-                request.getUserId(), request.getTimestamp());
+        log.info(">>> [🤖 Producer] 위치 이벤트 발행 성공 | 사용자 ID: {}, 발생 시각: {}",
+                request.getUserId(), readableTime);
     }
 }

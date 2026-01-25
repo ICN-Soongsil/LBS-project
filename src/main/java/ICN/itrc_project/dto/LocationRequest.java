@@ -27,5 +27,5 @@ public class LocationRequest {
 
     // 4. 시간 정보
     @Builder.Default
-    private Long timestamp = Instant.now().toEpochMilli();
+    private Long timestamp = System.currentTimeMillis();
 }
