@@ -2,8 +2,10 @@ package ICN.itrc_project.controller;
 
 import ICN.itrc_project.dto.LocationRequest;
 import ICN.itrc_project.kafka.producer.LocationProducer;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,7 +24,7 @@ public class LocationController {
     private final LocationProducer locationProducer;
 
     @PostMapping
-    public ResponseEntity<String> receiveLocation(@RequestBody LocationRequest request) {
+    public ResponseEntity<String> receiveLocation(@Valid @RequestBody LocationRequest request) {
         log.info("[💌 Controller] 위치 정보 수신: userId={}", request.getUserId());
 
         // 1. 수신된 위치 데이터를 Kafka로 전달
