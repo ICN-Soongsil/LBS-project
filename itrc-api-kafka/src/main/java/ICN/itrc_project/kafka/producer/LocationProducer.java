@@ -57,8 +57,8 @@ public class LocationProducer {
      */
     private String convertToPercentage(Double accuracy) {
         if (accuracy == null) return "0%";
+        if (accuracy < 0) return "100%";
         double score;
-        if (accuracy == null) return "0%";
         if (accuracy <= 5) score = 100 - (accuracy * 2);
         else if (accuracy <= 20) score = 90 - ((accuracy - 5) * 2.67);
         else if (accuracy <= 50) score = 50 - ((accuracy - 20) * 1.67);

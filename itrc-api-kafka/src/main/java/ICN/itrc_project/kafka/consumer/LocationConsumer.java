@@ -61,9 +61,7 @@ public class LocationConsumer {
      */
     private String convertToPercentage(Double accuracy) {
         if (accuracy == null) return "0%";
-        if (accuracy < 0) {
-            return "100%";
-        }
+        if (accuracy < 0) return "100%";
         double score;
         if (accuracy <= 5) {
             // 0~5m: 100% ~ 90% (최상급 품질)
