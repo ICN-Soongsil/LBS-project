@@ -1,16 +1,24 @@
 package ICN.itrc_project.controller;
 
 import ICN.itrc_project.dto.LocationResponse;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.geo.*;
+import org.springframework.data.geo.Circle;
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.GeoResults;
+import org.springframework.data.geo.Point;
 import org.springframework.data.redis.connection.RedisGeoCommands;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.domain.geo.Metrics;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.awt.geom.Path2D;
 import java.math.BigDecimal;
@@ -25,7 +33,8 @@ import java.util.stream.Collectors;
 @Validated
 public class RedisLocationController {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    // Geo 조회는 무조건 StringRedisTemplate 사용 (JSON 파싱 에러 방지)
+    private final StringRedisTemplate stringRedisTemplate;
     private static final String GEO_KEY = "mobility:locations";
 
     /**
@@ -49,7 +58,7 @@ public class RedisLocationController {
         RedisGeoCommands.GeoRadiusCommandArgs args = RedisGeoCommands.GeoRadiusCommandArgs.newGeoRadiusArgs()
                 .includeDistance().includeCoordinates().sortAscending();
 
-        GeoResults<RedisGeoCommands.GeoLocation<Object>> results = redisTemplate.opsForGeo().radius(GEO_KEY, circle, args);
+        GeoResults<RedisGeoCommands.GeoLocation<String>> results = stringRedisTemplate.opsForGeo().radius(GEO_KEY, circle, args);
 
         if (results == null) {
             log.warn(">>> [⚠️ 결과 없음] Redis 검색 결과가 null입니다.");
@@ -91,7 +100,8 @@ public class RedisLocationController {
         RedisGeoCommands.GeoRadiusCommandArgs args = RedisGeoCommands.GeoRadiusCommandArgs.newGeoRadiusArgs()
                 .includeDistance().includeCoordinates().sortAscending().limit(n);
 
-        GeoResults<RedisGeoCommands.GeoLocation<Object>> results = redisTemplate.opsForGeo().radius(GEO_KEY, circle, args);
+        // String으로 결과 받기
+        GeoResults<RedisGeoCommands.GeoLocation<String>> results = stringRedisTemplate.opsForGeo().radius(GEO_KEY, circle, args);
 
         if (results == null) {
             log.warn(">>> [⚠️ 결과 없음] 최근접 탐색 결과가 null입니다.");
@@ -100,7 +110,7 @@ public class RedisLocationController {
 
         List<LocationResponse> response = results.getContent().stream()
                 .map(result -> LocationResponse.builder()
-                        .userId(result.getContent().getName().toString())
+                        .userId(result.getContent().getName())
                         .latitude(result.getContent().getPoint().getY())
                         .longitude(result.getContent().getPoint().getX())
                         .distanceMeter(result.getDistance().getValue())
@@ -163,7 +173,7 @@ public class RedisLocationController {
         RedisGeoCommands.GeoRadiusCommandArgs args = RedisGeoCommands.GeoRadiusCommandArgs.newGeoRadiusArgs()
                 .includeDistance().includeCoordinates().sortAscending();
 
-        GeoResults<RedisGeoCommands.GeoLocation<Object>> results = redisTemplate.opsForGeo().radius(GEO_KEY, filterArea, args);
+        GeoResults<RedisGeoCommands.GeoLocation<String>> results = stringRedisTemplate.opsForGeo().radius(GEO_KEY, filterArea, args);
 
         if (results == null) {
             return ResponseEntity.ok(Collections.emptyList());

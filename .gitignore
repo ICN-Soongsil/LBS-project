@@ -35,3 +35,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Project Data ###
+grab_posisi_data.csv

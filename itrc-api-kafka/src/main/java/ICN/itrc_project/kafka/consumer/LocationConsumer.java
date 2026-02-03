@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.geo.Point;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +19,8 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class LocationConsumer {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;  // JSON용 (상세정보)
+    private final StringRedisTemplate stringRedisTemplate;      // String용 (지도좌표)
 
     // Redis 저장 키
     private static final String GEO_KEY = "mobility:locations";         // 주변 몇 km 이내 찾을때 묶기 위함
@@ -28,26 +30,33 @@ public class LocationConsumer {
     @KafkaListener(topics = "location-events", groupId = "lbs-group")
     public void consumeLocation(LocationRequest request) {
 
-        // 1. 유효성 및 좌표 범위 검증
+        // 1. 데이터 검증
         if (isInvalid(request)) return;
 
-        // 2. Redis 실시간 데이터 저장 (Geo + 상세 상태)
-        redisTemplate.opsForGeo().add(GEO_KEY, new Point(request.getLongitude(), request.getLatitude()), request.getUserId());
-        redisTemplate.opsForValue().set(STATUS_PREFIX + request.getUserId(), request, STATUS_TTL);
+        // 2. ID 정제 (특수문자 제거)
+        String cleanUserId = request.getUserId().replaceAll("[^a-zA-Z0-9_]", "");
 
-        // 3. 성능 측정을 위한 지연 시간(Lag) 계산
+        // [Geo 저장] StringRedisTemplate 사용 -> ID에 따옴표 없이 저장됨 (지도 시각화용)
+        stringRedisTemplate.opsForGeo().add(GEO_KEY,
+                new Point(request.getLongitude(), request.getLatitude()),
+                cleanUserId);
+
+        // [상세 저장] RedisTemplate 사용 -> 객체를 JSON으로 저장 (상세 조회용)
+        redisTemplate.opsForValue().set(STATUS_PREFIX + cleanUserId, request, STATUS_TTL);
+
+        // 3. 로그 출력 (성능 측정)
         long lag = System.currentTimeMillis() - request.getTimestamp();
         String readableLag = formatDuration(lag);
 
         // 4. 정확도(m)와 퍼센티지(%)를 모두 로그에 남김
-        String accuracyPercent = convertToPercentage(request.getAccuracy());
+        String convertToPercentage = convertToPercentage(request.getAccuracy());
 
         // 5. 프로듀서와 통일된 핵심 로그 출력
         log.info(">>> [⚙️ 처리] 유저(trj):{} | 서비스:{} | 정확도:{}m({}) | 속도:{} | 지연:{} \n",
-                request.getUserId(),
+                cleanUserId,
                 request.getServiceType(),
                 request.getAccuracy(),
-                accuracyPercent,
+                convertToPercentage,
                 String.format("%5.1fkm/h", request.getSpeed()),
                 readableLag);
     }
