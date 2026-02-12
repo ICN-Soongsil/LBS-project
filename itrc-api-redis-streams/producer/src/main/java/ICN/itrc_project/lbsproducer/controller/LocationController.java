@@ -10,13 +10,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/locations")
+@RequestMapping("/api/v1/redis")
 @RequiredArgsConstructor
 public class LocationController {
 
     private final LocationEventProducer locationEventProducer;
 
-    @PostMapping
+    @PostMapping("/update")
     public ResponseEntity<Void> receiveLocation(@RequestBody LocationRequest request) {
         locationEventProducer.sendLocationEvent(request);
         return ResponseEntity.ok().build();

@@ -26,18 +26,17 @@ public class RdbmsLocationController {
     private final LocationRepository locationRepository;
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
-    // ✅ 데이터 저장/업데이트
+    // 0️⃣ 데이터 저장/업데이트
     @PostMapping("/update")
     @Transactional
     public ResponseEntity<String> updateLocation(@Valid @RequestBody LocationRequest request) {
-        // 입력받은 위경도로 Point 객체 생성 (순서: 경도 X, 위도 Y)
         Point point = geometryFactory.createPoint(new Coordinate(request.getLongitude(), request.getLatitude()));
 
         LocationEntity entity = locationRepository.findByUserId(request.getUserId());
         if (entity == null) {
             locationRepository.save(LocationEntity.builder()
                     .userId(request.getUserId())
-                    .location(point) // Point 저장
+                    .location(point)
                     .speed(request.getSpeed())
                     .accuracy(request.getAccuracy())
                     .serviceType(request.getServiceType())
@@ -50,33 +49,36 @@ public class RdbmsLocationController {
     }
 
     // 1️⃣ Range Query API
-    @GetMapping("/search/range")
+    @PostMapping("/search/range") // ✅ GET -> POST
     public ResponseEntity<List<RdbmsLocationResponse>> searchRange(
-            @RequestParam double lat, @RequestParam double lng, @RequestParam double radius) {
+            @RequestBody LocationRequest request, // ✅ Body로 위경도 수신
+            @RequestParam(defaultValue = "1.0") double radius) {
         return ResponseEntity.ok(
-                locationRepository.findByRadius(lat, lng, radius).stream()
-                        .map(RdbmsLocationResponse::from) // DTO로 변환
+                locationRepository.findByRadius(request.getLatitude(), request.getLongitude(), radius).stream()
+                        .map(RdbmsLocationResponse::from)
                         .collect(Collectors.toList())
         );
     }
 
-    // 2️⃣ KNN API
-    @GetMapping("/search/knn")
+    // 2️⃣ KNN API (POST로 변경)
+    @PostMapping("/search/knn")
     public ResponseEntity<List<RdbmsLocationResponse>> searchKnn(
-            @RequestParam double lat, @RequestParam double lng, @RequestParam int k) {
+            @RequestBody LocationRequest request, // ✅ Body로 위경도 수신
+            @RequestParam(defaultValue = "10") int k) {
         return ResponseEntity.ok(
-                locationRepository.findNearest(lat, lng, k).stream()
-                        .map(RdbmsLocationResponse::from) // DTO로 변환
+                locationRepository.findNearest(request.getLatitude(), request.getLongitude(), k).stream()
+                        .map(RdbmsLocationResponse::from)
                         .collect(Collectors.toList())
         );
     }
 
-    // 3️⃣ PIP API (구역 검색)
-    @GetMapping("/search/pip")
-    public ResponseEntity<List<RdbmsLocationResponse>> searchPip(@RequestParam String wkt) {
+    // 3️⃣ PIP API (POST로 변경)
+    @PostMapping("/search/pip")
+    public ResponseEntity<List<RdbmsLocationResponse>> searchPip(@RequestBody String wkt) {
+        // WKT(Well-Known Text) 문자열을 직접 Body로 수신
         return ResponseEntity.ok(
                 locationRepository.findInPolygon(wkt).stream()
-                        .map(RdbmsLocationResponse::from) // DTO로 변환
+                        .map(RdbmsLocationResponse::from)
                         .collect(Collectors.toList())
         );
     }
