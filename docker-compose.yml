@@ -73,9 +73,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      # 설정 파일 연결
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      # 수집한 데이터가 날아가지 않게 저장
       - prometheus_data:/prometheus
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -92,10 +90,14 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=password
     volumes:
-      # 1. [필수] 내가 만든 커스텀 대시보드 저장
+      # 1. [데이터 저장] 사용자가 UI에서 만든 대시보드 저장용
       - grafana_data:/var/lib/grafana
-      # 2. [편의] Prometheus 데이터소스 자동 연결 설정
+
+      # 2. [설정 연동] 여기가 수정됨! (뒤에 /provisioning 까지 꼭 붙여야 함)
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+
+      # 3. [JSON 파일 연동] 로컬 JSON 파일을 컨테이너 내부로 복사
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - prometheus
     restart: always

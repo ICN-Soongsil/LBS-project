@@ -1,7 +1,7 @@
+import json
+import random
 import requests
 import time
-import random
-import json
 
 # ✅ RDBMS 서버 주소 (8081 포트)
 API_URL = "http://localhost:8081/api/v1/rdbms/update"
