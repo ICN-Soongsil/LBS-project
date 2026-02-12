@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   # ==========================================
-  # 1. Kafka & Zookeeper (itrc-api-kafka 모듈용)
+  # 1. Kafka Ecosystem
   # ==========================================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -34,7 +34,7 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
 
   # ==========================================
-  # 2. Redis Stack (itrc-api-redis-streams 모듈용)
+  # 2. Redis Stack
   # ==========================================
   redis:
     image: redis/redis-stack:latest
@@ -48,7 +48,7 @@ services:
       - redis_data:/data
 
   # ==========================================
-  # 3. PostGIS (ARM64 Native)
+  # 3. PostGIS
   # ==========================================
   postgis:
     image: kartoza/postgis:16-3.4
@@ -65,7 +65,7 @@ services:
     restart: always
 
   # ==========================================
-  # 4. Monitoring (Prometheus & Grafana) [NEW]
+  # 4. Monitoring (Prometheus & Grafana)
   # ==========================================
   prometheus:
     image: prom/prometheus:latest
@@ -73,13 +73,15 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      # 아까 만든 설정 파일을 컨테이너 내부로 연결
+      # 설정 파일 연결
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      # 수집한 데이터가 날아가지 않게 저장
+      - prometheus_data:/prometheus
     extra_hosts:
-      # 도커 내부에서 로컬호스트(Spring Boot)를 찾기 위한 설정
       - "host.docker.internal:host-gateway"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
     restart: always
 
   grafana:
@@ -88,14 +90,21 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=password # 접속 비밀번호
+      - GF_SECURITY_ADMIN_PASSWORD=password
     volumes:
-      - grafana_data:/var/lib/grafana # 대시보드 저장용 볼륨
+      # 1. [필수] 내가 만든 커스텀 대시보드 저장
+      - grafana_data:/var/lib/grafana
+      # 2. [편의] Prometheus 데이터소스 자동 연결 설정
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - prometheus
     restart: always
 
+# ==========================================
+# Volumes
+# ==========================================
 volumes:
   redis_data:
   postgres_data:
-  grafana_data: # 그라파나 설정 저장용
+  grafana_data:
+  prometheus_data:
