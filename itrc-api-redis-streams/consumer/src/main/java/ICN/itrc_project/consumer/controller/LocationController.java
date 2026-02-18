@@ -28,7 +28,7 @@ public class LocationController {
     }
 
     /**
-     * 2. OGC 표준 최근접 검색 (KNN Query)
+     * 2. OGC 표준 최근접 검색 (KNN Query)RedisStreamConsumer
      * k6 요청 예시: POST /api/v1/search/knn?k=10
      */
     @PostMapping("/knn")
